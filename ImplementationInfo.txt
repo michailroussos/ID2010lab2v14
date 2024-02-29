@@ -2,9 +2,9 @@ The following are derived from the Readme.txt
 ********************************************************
 Let's say we decide to implement a new class called Player that will be based on the Dexter class that was provided.
 A Player needs to have:
-- (maybe) implement the Serializable marker interface so that it can move between JVMs, Dexter does so as well - Player extends Dexter, so this will be done by default
-- an enum with values 'it' and 'not it'
-- the Player must have a unique id ( so that they can distinguish them selves from others and tell who is who ) maybe of type java.util.UUID
+-* (maybe) implement the Serializable marker interface so that it can move between JVMs, Dexter does so as well - Player extends Dexter, so this will be done by default
+-* an enum with values 'it' and 'not it'
+-* the Player must have a unique id ( so that they can distinguish them selves from others and tell who is who ) maybe of type java.util.UUID
 - needs to be able to communicate with the Bailiff to check for other players in the same Bailiff
 - needs to be able to check if other players are 'it'
 - needs to be able to try to make other players 'it' ( only when they are on the same Bailiff )
