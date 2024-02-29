@@ -2,13 +2,16 @@
 // 2024-01-25/fki Refactored for v14 - No Jini, just rmiregistry
 // 2018-08-16/fki Refactored for v13
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.rmi.Naming;
+import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -64,6 +67,12 @@ public class Bailiff
 
   // Registration name with the rmiregistry
   protected String serviceName = null;
+
+  // A list of all the players in the Bailiff
+  protected ArrayList<Player> players = new ArrayList<>();
+
+  // A boolean to check if the Bailiff currently has the player that is it
+  protected boolean containsIt = false;
 
   /**
    * If debug is enabled, prints a message on stdout.
@@ -215,6 +224,60 @@ public class Bailiff
     agt.start();
   }
 
+  /**
+   * This method will be used to perform the tag operation on the Bailiff.
+   * 
+   * @param unique_id The unique id of the player to be tagged
+   */
+  public boolean tag(UUID unique_id) throws java.rmi.RemoteException {
+    Player a = lookup(unique_id);
+    return a.getTagged();
+  }
+
+  /**
+   * This method will return a list with the Players on the bailiff.
+   */
+  public ArrayList<Player> getPlayers() throws java.rmi.RemoteException {
+    return players;
+  }
+
+  /**
+   * This method will return the player that is it if they are on the bailiff or
+   * null if they are not.
+   */
+  public Player getItPlayer() throws java.rmi.RemoteException {
+    for (Player p : players) {
+      if (p.getState() == Player.State.IT) {
+        containsIt = true;
+        return p;
+      }
+    }
+    containsIt = false;
+    return null;
+  }
+
+  /**
+   * This method will return another player that is not it if they are on the
+   * Bailiff, so that they can be tagged.
+   */
+  public Player getNotItPlayer() throws java.rmi.RemoteException {
+    for (Player p : players) {
+      if (p.getState() == Player.State.NOT_IT) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * This method will check if a Player is it or not.
+   * 
+   * @param player The player that is being checked.
+   */
+  public boolean isIt(Player player) throws java.rmi.RemoteException {
+    return player.getState() == Player.State.IT;
+  }
+
   /* ================ C o n s t r u c t o r ================ */
 
   /**
@@ -293,6 +356,20 @@ public class Bailiff
       System.out.printf("When unbinding from rmiregistry: %s\n",
           e.toString());
     }
+  }
+
+  /**
+   * This method returns the player with the given id.
+   * 
+   * @param the id of the player that we want to find.
+   */
+  protected Player lookup(UUID unique_id) {
+    for (Player p : players) {
+      if (p.getUniqueId().equals(unique_id)) {
+        return p;
+      }
+    }
+    return null;
   }
 
   /**

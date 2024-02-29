@@ -22,12 +22,12 @@ public class Dexter implements Serializable {
   /**
    * List of viable Bailiff names
    */
-  private ArrayList<String> goodNames = new ArrayList<>();
+  protected ArrayList<String> goodNames = new ArrayList<>();
 
   /**
    * List of defunct Bailiff names
    */
-  private ArrayList<String> badNames = new ArrayList<>();
+  protected ArrayList<String> badNames = new ArrayList<>();
 
   /**
    * Identification string used in debug messages.
@@ -37,19 +37,19 @@ public class Dexter implements Serializable {
   /**
    * Default sleep time so that we have time to track what it does.
    */
-  private long restraintSleepMs = 5000;
+  protected long restraintSleepMs = 5000;
 
   /**
    * The jump count variable is incremented each time method topLevel
    * is entered. Its value is printed by the debugMsg routine.
    */
-  private int jumpCount = 0;
+  protected int jumpCount = 0;
 
   /**
    * The default sleep time between subsequent queries of the
    * rmiregistry.
    */
-  private long retrySleep = 20 * 1000; // 20 seconds
+  protected long retrySleep = 20 * 1000; // 20 seconds
 
   /**
    * The debug flag controls the amount of diagnostic info we put out.

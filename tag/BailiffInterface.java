@@ -2,6 +2,9 @@
 // 2024-01-25/fki Reviewed for v14
 // 2018-08-16/fki Refactored for v13.
 
+import java.util.UUID;
+import java.util.ArrayList;
+
 /**
  * This interface is for the Bailiff's clients. The clients are mobile
  * code which move into the Bailiff's JVM for execution.
@@ -49,4 +52,35 @@ public interface BailiffInterface
       throws java.rmi.RemoteException,
       java.lang.NoSuchMethodException;
 
+  /**
+   * This method will be used to perform the tag operation on the Bailiff.
+   * 
+   * @param unique_id The unique id of the player that is being tagged.
+   */
+  public boolean tag(UUID unique_id) throws java.rmi.RemoteException;
+
+  /**
+   * This method will return a list with the Players on the bailiff.
+   */
+  public ArrayList<Player> getPlayers() throws java.rmi.RemoteException;
+
+  /**
+   * This method will return the player that is it if they are on the bailiff or
+   * null if they are not.
+   */
+
+  public Player getItPlayer() throws java.rmi.RemoteException;
+
+  /**
+   * This method will return another player that is not it if they are on the
+   * Bailiff, so that they can be tagged.
+   */
+  public Player getNotItPlayer() throws java.rmi.RemoteException;
+
+  /**
+   * This method will check if a Player is it or not.
+   * 
+   * @param player The player that is being checked.
+   */
+  public boolean isIt(Player player) throws java.rmi.RemoteException;
 }
