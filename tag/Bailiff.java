@@ -278,6 +278,15 @@ public class Bailiff
     return player.getState() == Player.State.IT;
   }
 
+  /**
+   * This method will check if a Player is in the Bailiff.
+   * 
+   * @param player The player that is being checked.
+   */
+  public boolean isPlayerInBailiff(Player player) throws java.rmi.RemoteException {
+    return players.contains(player);
+  }
+
   /* ================ C o n s t r u c t o r ================ */
 
   /**

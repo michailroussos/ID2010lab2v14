@@ -66,11 +66,11 @@ public class Player extends Dexter {
     }
 
     /**
-     * This method is based on the Dexter's topLevel method. It will be used by the
-     * player that is 'IT' to try to jump to the Bailiff with the most players.
+     * This method is based on the Dexter's topLevel method. It will be enhanced so
+     * that we can order the Bailiffs.
      */
 
-    public void topLevelForIt()
+    public void topLevelForPlayer()
             throws java.io.IOException {
         jumpCount++;
 
@@ -110,6 +110,17 @@ public class Player extends Dexter {
             // Now, at least one possibly good Bailiff has been found.
 
             debugMsg("Found " + goodNames.size() + " Bailiffs");
+
+            // Now we will order the Bailiffs based on the number of players they have.
+
+                orderBailiffs();
+            }else{
+                // If the player is not it, we will order the Bailiffs based on the number of
+                // players and it will put the one with the player that is 'it' last.
+                orderBailiffsForNotIt();
+            }
+            
+
 
             // Enter a loop in which we:
             // - randomly pick one Bailiff
@@ -175,143 +186,81 @@ public class Player extends Dexter {
                     goodNames.clear();
                     badNames.clear();
                 } else if (badName) {
-                    debugMsg(String.format("Bad service name found: %s", name));
-                    goodNames.remove(name);
-                    badNames.add(name);
-                }
+                 
 
+    
             } // while candidates remain
 
             debugMsg("All Bailiffs failed.");
         } // for ever
     } // topLevel
 
-    /**
-     * This method is based on the Dexter's topLevel method. It will be used by the
-     * player that are not it to avoid the Bailiff with the player that is 'IT'.
-     */
+    private void orderBailiffs() {
 
-    public void topLevelForNotIt()
-            throws java.io.IOException {
-        jumpCount++;
+        for (String name : goodNames) {
+            // Prepare some state flags
 
-        // Loop forever until we have successfully jumped to a Bailiff.
-
-        for (;;) {
-
-            long retryInterval = 0; // incremented when no Bailiffs are found
-
-            // Sleep a bit so that humans can keep up.
-
-            debugMsg("Is here - entering restraint sleep.");
-            snooze(restraintSleepMs);
-            debugMsg("Leaving restraint sleep.");
-
-            // Try to find Bailiffs.
-            // The loop keeps going until we get a non-empty list of good names.
-            // If no results are found, we sleep a bit between attempts.
-
-            do {
-
-                if (0 < retryInterval) {
-                    debugMsg("No Bailiffs detected - sleeping.");
-                    snooze(retryInterval);
-                    debugMsg("Waking up, looking for Bailiffs.");
-                }
-
-                scanForBailiffs();
-
-                retryInterval = retrySleep;
-
-                // If no lookup servers or bailiffs are found, go back up to
-                // the beginning of the loop, sleep a bit, and then try again.
-
-            } while (goodNames.isEmpty());
-
-            // Now, at least one possibly good Bailiff has been found.
-
-            debugMsg("Found " + goodNames.size() + " Bailiffs");
-
-            // Enter a loop in which we:
-            // - randomly pick one Bailiff
-            // - migrate to it, or if that fail, try another one
-
-            while (!goodNames.isEmpty()) {
-
-                // Randomly pick one of the good names
-
-                String name = goodNames.get((int) (goodNames.size() * Math.random()));
-
-                // Prepare some state flags
-
-                boolean noRegistry = false;
-                boolean badName = false;
+            boolean noRegistry = false;
+            boolean badName = false;
+            try {
+                // Obtain the default RMI registry
+                Registry registry = LocateRegistry.getRegistry(null);
 
                 try {
 
-                    // Obtain the default RMI registry
+                    // Lookup the service name we selected
 
-                    Registry registry = LocateRegistry.getRegistry(null);
+                    Remote service = registry.lookup(name);
 
-                    try {
+                    // Verify it is what we want
 
-                        // Lookup the service name we selected
+                    if (service instanceof BailiffInterface) {
 
-                        Remote service = registry.lookup(name);
+                        BailiffInterface bfi = (BailiffInterface) service;
 
-                        // Verify it is what we want
+                        // Attempt to migrate
 
-                        if (service instanceof BailiffInterface) {
+                        //check if we are in the Bailiff already
+                        if (bfi.isPlayerInBailiff(this)) {
+                            my_bailiff = bfi;
+                            
+                        }
 
-                            BailiffInterface bfi = (BailiffInterface) service;
 
-                            // Attempt to migrate
-
-                            try {
-                                debugMsg("Trying to migrate");
-
-                                bfi.migrate(this, "topLevel", new Object[] {});
-
-                                debugMsg("Has migrated");
-
-                                return; // SUCCESS, we are done here
-                            } catch (RemoteException rex) {
-                                debugMsg(rex.toString());
-                                badName = true;
-                            }
-                        } else
-                            badName = true;
-                    } catch (Exception e) {
+                    } else
                         badName = true;
-                    }
                 } catch (Exception e) {
-                    noRegistry = true;
+                    badName = true;
                 }
+            } catch (Exception e) {
+                noRegistry = true;
+            }
 
-                // If we come here the migrate failed. Check the state flags
-                // and take appropriate action.
+            // If we come here the migrate failed. Check the state flags
+            // and take appropriate action.
 
-                if (noRegistry) {
-                    debugMsg("No registry found - resetting name lists");
-                    goodNames.clear();
-                    badNames.clear();
-                } else if (badName) {
-                    debugMsg(String.format("Bad service name found: %s", name));
-                    goodNames.remove(name);
-                    badNames.add(name);
-                }
+            if (noRegistry) {
+                debugMsg("No registry found - resetting name lists");
+                goodNames.clear();
+                badNames.clear();
+            } else if (badName) {
+                debugMsg(String.format("Bad service name found: %s", name));
+                goodNames.remove(name);
+                badNames.add(name);
+            }
 
-            } // while candidates remain
+        } // while candidates remain
 
-            debugMsg("All Bailiffs failed.");
-        } // for ever
-    } // topLevel
+        debugMsg("All Bailiffs failed.");
+        }   
 
-    /**
-     * Prints commandline help.
-     */
-    private static void showUsage() {
-        String[] msg = {
+    }
+
+
+    
+
+     
+
                 "Usage: {?,-h,-help}|[-debug][-id string][-rs ms][-qs ms]",
                 "? -h -help   Show this text",
                 "-debug       Enable trace and diagnostic messages",
