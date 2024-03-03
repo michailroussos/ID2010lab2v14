@@ -37,6 +37,11 @@ public class Player extends Dexter implements PlayerInterface {
         return true;
     }
 
+    // Implementing isTagged method
+    public boolean isTagged() throws java.rmi.RemoteException {
+        return isIt;
+    }
+
     // =============== Main overwrite ==========================================================
     public static void main(String[] argv)
             throws java.io.IOException, java.lang.ClassNotFoundException {

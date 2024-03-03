@@ -21,6 +21,7 @@ public interface BailiffInterface
   /**
    * Returns a property of the Bailiff.
    * 
+   * 
    * @param key The case-insensitive property key to retrieve.
    * @return The property string or null.
    */
@@ -35,11 +36,21 @@ public interface BailiffInterface
    *
    * @param obj  The object (to execute).
    * @param cb   The name of the method to call as the program of obj.
+   * @param obj  The object (to execute).
+   * @param cb   The name of the method to call as the program of obj.
    * @param args The parameters for the callback method. Note that if
    *             the method has a signature without arguments the value of args
    *             should be an empty array. Setting args to null will not work.
    * @exception java.rmi.RemoteException        Thrown if there is an RMI problem.
+   *             the method has a signature without arguments the value of args
+   *             should be an empty array. Setting args to null will not work.
+   * @exception java.rmi.RemoteException        Thrown if there is an RMI problem.
    * @exception java.lang.NoSuchMethodException Thrown if the proposed
+   *                                            callback is not found (which
+   *                                            happen if the name is spelled
+   *                                            wrong,
+   *                                            the number of arguments is wrong
+   *                                            or are of the wrong type).
    *                                            callback is not found (which
    *                                            happen if the name is spelled
    *                                            wrong,

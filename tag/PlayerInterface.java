@@ -14,4 +14,8 @@ public interface PlayerInterface extends
     // Tag Player
     public boolean tag()
             throws java.rmi.RemoteException;
+   
+    // Is Player Tagged
+    public boolean isTagged()
+        throws java.rmi.RemoteException;
 }
