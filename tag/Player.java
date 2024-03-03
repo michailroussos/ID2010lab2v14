@@ -28,11 +28,17 @@ public class Player extends Dexter implements PlayerInterface {
   // The good Bailiffs
   private Map<String, List<Object>> goodNames;
 
+  // The current Bailliff
+  private String currentBailiff;
+
   // isTagged flag
   private boolean isIt;
 
   // Migration flag
   private boolean migrating;
+
+  // the starting delay for the players
+  protected long initialDelay = 4000;
 
   // =============== Interfaces implementation
   // ==========================================================
@@ -66,6 +72,7 @@ public class Player extends Dexter implements PlayerInterface {
     this.goodNames = new HashMap<>();
     this.isIt = false;
     this.migrating = false;
+    this.currentBailiff = null;
   }
 
   // ================== Helpers Methods
@@ -75,12 +82,14 @@ public class Player extends Dexter implements PlayerInterface {
    * This method tags the player and returns true i f the player was successfully
    * tagged and false when not.
    */
-  public boolean getTagged() {
+  public boolean getTaggedBySomebody() {
     this.isIt = true;
-    if (this.isIt && this.migrating == false)
+    if (this.isIt && this.migrating == false) {
+      debugMsg("I have been tagged, I am it now.");
       return true;
-    else
+    } else {
       return false;
+    }
   }
 
   /**
@@ -204,6 +213,76 @@ public class Player extends Dexter implements PlayerInterface {
       throws java.io.IOException {
     jumpCount++;
 
+    migrating = true; // we reset the migrating flag
+
+    debugMsg("Initial delay snooze..");
+    // let's start by adding a small delay to the player's migration
+    if (isIt) {// we award the player who is it with a shorter delay
+      snooze(initialDelay - initialDelay / 5);
+    } else {
+      snooze(initialDelay);
+    }
+    /*
+     * //here we will check for any players in the current bailiff
+     * try {
+     * // Obtain the default RMI registry
+     * Registry registry = LocateRegistry.getRegistry(null);
+     * // Lookup the service name we selected
+     * Remote service = registry.lookup();
+     * // Verify it is what we want
+     * if (service instanceof BailiffInterface) {
+     * BailiffInterface bfi = (BailiffInterface) service;
+     * bfi.addPlayer(this);
+     * }
+     * } catch (Exception e) {
+     * debugMsg("Error adding player to bailiff: " + e.toString());
+     * }
+     */
+
+    // if we have moved to a Bailliff, we try to see if we have to do anything
+    // depending on the player's state ( it or not it)
+    if (currentBailiff != null) {
+      debugMsg("I am in a bailiff, let's see if I have to do anything.");
+      // This is the functionality for the 'it' and 'not it' players
+      try {
+        // Obtain the default RMI registry
+        Registry registry = LocateRegistry.getRegistry(null);
+        // Lookup the service name we selected
+        Remote service = registry.lookup(currentBailiff);
+        // Verify it is what we want
+        if (service instanceof BailiffInterface) {
+          BailiffInterface bfi = (BailiffInterface) service;
+          if (isIt) {// if we are it
+            debugMsg("I am it, let's see if I can tag someone.");
+            HashMap<UUID, PlayerInterface> playersHashMap = (HashMap<UUID, PlayerInterface>) bfi.getPlayers();
+            for (PlayerInterface player : playersHashMap.values()) {
+              if (!(player.getUUID().equals(this.getUUID())) && !player.isTagged()) {
+                debugMsg("I have found a player who is not tagged, I will try to tag him.");
+                // if we successfully tag a player
+                if (player.getTaggedBySomebody()) {
+                  debugMsg("I have tagged the player " + player.toString());
+                  // we are not it anymore
+                  this.isIt = false;
+                  // we break the loop
+                  break;
+                }
+              }
+            }
+          } else {// if we are not it
+            debugMsg("I am not it, let's see what I will do now.");
+            if (bfi.checkIfContainsIt()) {// this means that the player who is it is in the same bailiff
+              debugMsg("I have to try to find a new Bailiff, because the 'it' is in the same Bailiff.");
+            } else {
+              debugMsg("I will sleep a bit more, since I am not in the same Bailiff as the 'it'.");
+              snooze(initialDelay / 2);
+            }
+          }
+        }
+      } catch (Exception e) {
+        debugMsg("Error adding player to bailiff: " + e.toString());
+      }
+    }
+
     // Loop forever until we have successfully jumped to a Bailiff.
 
     for (;;) {
@@ -249,7 +328,14 @@ public class Player extends Dexter implements PlayerInterface {
 
         // Randomly pick one of the good names
 
-        String name = getBailiffWithMaxPlayers();
+        String name;
+
+        if (isIt) {// if the player is it, we want to migrate to the bailiff with the most players
+          name = getBailiffWithMaxPlayers();
+        } else {// if the player is not it, we want to migrate to the bailiff with the least
+                // players
+          name = getBailiffWithMinPlayers();
+        }
 
         ////////////////////////////
         // Prepare some state flags
@@ -279,7 +365,8 @@ public class Player extends Dexter implements PlayerInterface {
 
               try {
                 debugMsg("Trying to migrate");
-
+                currentBailiff = name;// we set the current bailiff to the one we are migrating to
+                migrating = true;// we set the migrating flag to true
                 bfi.migrate(this, "topLevel", new Object[] {});
 
                 debugMsg("Has migrated");
@@ -329,5 +416,72 @@ public class Player extends Dexter implements PlayerInterface {
     }
     return bailiffName;
   }
+
+  public String getBailiffWithMinPlayers() {
+    int min = 0;
+    String bailiffName = null;
+    for (String name : goodNames.keySet()) {
+      List<Object> tuple = goodNames.get(name);
+      if ((int) tuple.get(1) < min) {
+        min = (int) tuple.get(1);
+        bailiffName = name;
+      }
+    }
+    return bailiffName;
+  }
+
+  public static void main(String[] argv)
+      throws java.io.IOException, java.lang.ClassNotFoundException {
+
+    // Make a new Player and configure it from commandline arguments.
+
+    Player pl = new Player();
+
+    // Parse and act on the commandline arguments.
+
+    int state = 0;
+
+    for (String av : argv) {
+
+      switch (state) {
+
+        case 0:
+          if (av.equals("?") || av.equals("-h") || av.equals("-help")) {
+            showUsage();
+            return;
+          } else if (av.equals("-debug"))
+            pl.setDebug(true);
+          else if (av.equals("-id"))
+            state = 1;
+          else if (av.equals("-rs"))
+            state = 2;
+          else if (av.equals("-qs"))
+            state = 3;
+          else {
+            System.err.println("Unknown commandline argument: " + av);
+            return;
+          }
+          break;
+
+        case 1:
+          pl.setId(av);
+          state = 0;
+          break;
+
+        case 2:
+          pl.setRestraintSleep(Long.parseLong(av));
+          state = 0;
+          break;
+
+        case 3:
+          pl.setRetrySleep(Long.parseLong(av));
+          state = 0;
+          break;
+      } // switch
+    } // for all commandline arguments
+
+    pl.topLevel(); // Start the Player
+
+  } // main
 
 }

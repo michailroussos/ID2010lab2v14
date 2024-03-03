@@ -46,9 +46,6 @@ public class Bailiff
   // forensic analysis.
   protected Logger log;
 
-  // A boolean to check if the Bailiff contains a player that is it
-  protected boolean containsIt = false;
-
   // The id string identifies this Bailiff instance in messages.
   protected String id = "";
 
@@ -296,27 +293,43 @@ public class Bailiff
     return tagged;
   }
 
+  /**
+   * This method checks if they Bailiff contains the 'it'
+   * 
+   * @return
+   * @throws java.rmi.RemoteException
+   */
+  public boolean checkIfContainsIt()
+      throws java.rmi.RemoteException {
+    // we loop over the players and check if any of them is 'it'
+    for (Map.Entry<UUID, PlayerInterface> entry : playerMap.entrySet()) {
+      if (entry.getValue().isTagged()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /* ================ C o n s t r u c t o r ================ */
 
   /**
    * Creates a new Bailiff service instance.
    * 
-   * @param room  Informational text field used to designate the 'room'
-   *              (physical or virtual) the Bailiff is running in.
-   * @param user  Information text field used to designate the 'user'
-   *              who is associated with the Bailiff instance.
-   * @param debug If true, diagnostic messages will be logged to the
-   *              provided Logger instance. This parameter is overridden if the
-   *              class local debug variable is set to true in the source code.
+   * @param id   Informational text field used to designate the 'id'
+   *             of the Bailiff instance.
+   * 
+   * @param info Informational text field used to designate the 'info'
+   * 
    *
-   * @param log   If debug is true, this parameter can be a Logger instance
-   *              configured to accept entries. If log is null a default Logger
-   *              instance
-   *              is created.
+   * @param log  If debug is true, this parameter can be a Logger instance
+   *             configured to accept entries. If log is null a default Logger
+   *             instance
+   *             is created.
    * @throws RemoteException
-   * @throws UnknownHostException Thrown if the local host address can not
-   *                              be determined.
-   * @throws IOException          Thrown if there is an I/O problem.
+   * @throws java.net.UnknownHostException Thrown if the local host address can
+   *                                       not
+   *                                       be determined.
+   * @throws IOException                   Thrown if there is an I/O problem.
    */
   public Bailiff(String id, String info, Logger log)
       throws java.rmi.RemoteException,
