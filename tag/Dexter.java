@@ -22,7 +22,7 @@ public class Dexter implements Serializable {
   /**
    * List of viable Bailiff names
    */
-  protected ArrayList<String> goodNames = new ArrayList<>();
+  private ArrayList<String> goodNames = new ArrayList<>();
 
   /**
    * List of defunct Bailiff names
@@ -31,9 +31,9 @@ public class Dexter implements Serializable {
 
   /**
    * Identification string used in debug messages.
-   */  
+   */
   protected String id = "anon";
-  
+
   /**
    * Default sleep time so that we have time to track what it does.
    */
@@ -303,13 +303,13 @@ public class Dexter implements Serializable {
    * Prints commandline help.
    */
   protected static void showUsage() {
-    String [] msg = {
-      "Usage: {?,-h,-help}|[-debug][-id string][-rs ms][-qs ms]",
-      "? -h -help   Show this text",
-      "-debug       Enable trace and diagnostic messages",
-      "-id  string  Set the id string printed by debug messages",
-      "-rs  ms      Set the restraint sleep in milliseconds",
-      "-qs  ms      Set the lookup query retry delay"
+    String[] msg = {
+        "Usage: {?,-h,-help}|[-debug][-id string][-rs ms][-qs ms]",
+        "? -h -help   Show this text",
+        "-debug       Enable trace and diagnostic messages",
+        "-id  string  Set the id string printed by debug messages",
+        "-rs  ms      Set the restraint sleep in milliseconds",
+        "-qs  ms      Set the lookup query retry delay"
     };
     for (String s : msg)
       System.out.println(s);

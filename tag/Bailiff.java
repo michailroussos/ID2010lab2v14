@@ -3,7 +3,6 @@
 // 2018-08-16/fki Refactored for v13
 
 import java.io.IOException;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
@@ -14,7 +13,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.UUID;
 
 /**
  * The Bailiff is an RMI service that provides an execution
@@ -47,6 +45,9 @@ public class Bailiff
   // The java.util.logging.Logger is provided for tracking and
   // forensic analysis.
   protected Logger log;
+
+  // A boolean to check if the Bailiff contains a player that is it
+  protected boolean containsIt = false;
 
   // The id string identifies this Bailiff instance in messages.
   protected String id = "";
@@ -209,16 +210,13 @@ public class Bailiff
    * @throws NoSuchMethodException Thrown if the specified entry method
    *                               does not exist with the expected signature.
    */
-  public void migrate (Object obj, String cb, Object [] args)
-    throws
-      java.rmi.RemoteException, NoSuchMethodException
-  {
+  public void migrate(Object obj, String cb, Object[] args)
+      throws java.rmi.RemoteException, NoSuchMethodException {
     if (log.isLoggable(Level.FINE)) {
       log.fine(String.format("migrate obj=%s cb=%s args=%s",
           obj.toString(),
           cb,
-          Arrays.toString(args))
-      );
+          Arrays.toString(args)));
     }
 
     // Add a new Player to the map
@@ -232,10 +230,11 @@ public class Bailiff
     agt.start();
   }
 
-  // ================ New Interface Methods Implementation  ================
-  
+  // ================ New Interface Methods Implementation ================
+
   /**
    * Tag a player
+   * 
    * @param id
    * @throws java.rmi.RemoteException
    */
@@ -251,6 +250,7 @@ public class Bailiff
 
   /**
    * Return players' Map
+   * 
    * @return
    * @throws java.rmi.RemoteException
    */
@@ -260,6 +260,7 @@ public class Bailiff
 
   /**
    * Return players' names
+   * 
    * @return
    * @throws java.rmi.RemoteException
    */
@@ -273,6 +274,7 @@ public class Bailiff
 
   /**
    * Return the number of players
+   * 
    * @return
    * @throws java.rmi.RemoteException
    */
@@ -282,6 +284,7 @@ public class Bailiff
 
   /**
    * Return the tagged players
+   * 
    * @return
    * @throws java.rmi.RemoteException
    */
