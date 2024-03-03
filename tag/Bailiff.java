@@ -2,8 +2,10 @@
 // 2024-01-25/fki Refactored for v14 - No Jini, just rmiregistry
 // 2018-08-16/fki Refactored for v13
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.rmi.Naming;
+import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -11,6 +13,7 @@ import java.util.Map;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.UUID;
 
 /**
  * The Bailiff is an RMI service that provides an execution
@@ -64,6 +67,9 @@ public class Bailiff
 
   // Registration name with the rmiregistry
   protected String serviceName = null;
+
+  // Map all players to their respective uuids
+  protected Map<UUID, PlayerInterface> playerMap = new HashMap<>();
 
   /**
    * If debug is enabled, prints a message on stdout.
@@ -208,15 +214,84 @@ public class Bailiff
     throws
       java.rmi.RemoteException, NoSuchMethodException
   {
+    if (log.isLoggable(Level.FINE)) {
+      log.fine(String.format("migrate obj=%s cb=%s args=%s",
+          obj.toString(),
+          cb,
+          Arrays.toString(args))
+      );
+    }
 
-    log.fine(String.format("migrate obj=%s cb=%s args=%s",
-			   obj.toString(),
-			   cb,
-			   Arrays.toString(args)));
-    
-    Agitator agt = new Agitator (obj, cb, args);
-    agt.initialize ();
-    agt.start ();
+    // Add a new Player to the map
+    if (obj instanceof Player) {
+      PlayerInterface p = (PlayerInterface) obj;
+      playerMap.put(p.getUUID(), p);
+    }
+
+    Agitator agt = new Agitator(obj, cb, args);
+    agt.initialize();
+    agt.start();
+  }
+
+  // ================ New Interface Methods Implementation  ================
+  
+  /**
+   * Tag a player
+   * @param id
+   * @throws java.rmi.RemoteException
+   */
+  public boolean tagPlayer(UUID id) throws java.rmi.RemoteException {
+    if (playerMap.containsKey(id)) {
+      // get the player
+      PlayerInterface p = playerMap.get(id);
+      // tag the player
+      return p.tag();
+    }
+    return false;
+  }
+
+  /**
+   * Return players' Map
+   * @return
+   * @throws java.rmi.RemoteException
+   */
+  public Map<UUID, PlayerInterface> getPlayers() throws java.rmi.RemoteException {
+    return playerMap;
+  }
+
+  /**
+   * Return players' names
+   * @return
+   * @throws java.rmi.RemoteException
+   */
+  public Map<UUID, String> getPlayersNames() throws java.rmi.RemoteException {
+    Map<UUID, String> names = new HashMap<>();
+    for (Map.Entry<UUID, PlayerInterface> entry : playerMap.entrySet()) {
+      names.put(entry.getKey(), entry.getValue().getName());
+    }
+    return names;
+  }
+
+  /**
+   * Return the number of players
+   * @return
+   * @throws java.rmi.RemoteException
+   */
+  public int getNumberOfPlayers() throws java.rmi.RemoteException {
+    return playerMap.size();
+  }
+
+  /**
+   * Return the tagged players
+   * @return
+   * @throws java.rmi.RemoteException
+   */
+  public Map<UUID, Boolean> getTaggedPlayers() throws java.rmi.RemoteException {
+    Map<UUID, Boolean> tagged = new HashMap<>();
+    for (Map.Entry<UUID, PlayerInterface> entry : playerMap.entrySet()) {
+      tagged.put(entry.getKey(), entry.getValue().isIt());
+    }
+    return tagged;
   }
 
   /* ================ C o n s t r u c t o r ================ */

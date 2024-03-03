@@ -33,7 +33,7 @@ public class Dexter implements Serializable
   /**
    * Identification string used in debug messages.
    */  
-  private String id = "anon";
+  protected String id = "anon";
   
   /**
    * Default sleep time so that we have time to track what it does.
@@ -305,7 +305,7 @@ public class Dexter implements Serializable
   /**
    * Prints commandline help.
    */
-  private static void showUsage() {
+  protected static void showUsage() {
     String [] msg = {
       "Usage: {?,-h,-help}|[-debug][-id string][-rs ms][-qs ms]",
       "? -h -help   Show this text",
