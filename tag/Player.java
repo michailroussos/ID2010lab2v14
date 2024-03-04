@@ -213,7 +213,7 @@ public class Player extends Dexter implements PlayerInterface {
       throws java.io.IOException {
     jumpCount++;
 
-    migrating = true; // we reset the migrating flag
+    migrating = false; // we reset the migrating flag
 
     debugMsg("Initial delay snooze..");
     // let's start by adding a small delay to the player's migration
@@ -457,6 +457,8 @@ public class Player extends Dexter implements PlayerInterface {
             state = 2;
           else if (av.equals("-qs"))
             state = 3;
+          else if (av.equals("-it"))
+            pl.isIt = true;
           else {
             System.err.println("Unknown commandline argument: " + av);
             return;
