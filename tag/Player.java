@@ -39,23 +39,23 @@ public class Player extends Dexter implements PlayerInterface {
 
   // Implementing getUUID method
   public UUID getUUID() throws java.rmi.RemoteException {
-    return uuid;
+    return this.uuid;
   }
 
   // Implementing getName method
   public String getName() throws java.rmi.RemoteException {
-    return id;
+    return this.id;
   }
 
   // Implementing tag method
   public boolean tag() throws java.rmi.RemoteException {
-    isIt = true;
+    this.isIt = true;
     return true;
   }
 
   // Implementing isTagged method
   public boolean isTagged() throws java.rmi.RemoteException {
-    return isIt;
+    return this.isIt;
   }
 
   // ================== Constructor
