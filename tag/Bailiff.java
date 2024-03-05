@@ -222,7 +222,7 @@ public class Bailiff
     // Add a new Player to the map
     if (obj instanceof Player) {
       PlayerInterface p = (PlayerInterface) obj;
-      playerMap.put(p.getUUID(), p);
+      this.playerMap.put(p.getUUID(), p);
     }
 
     Agitator agt = new Agitator(obj, cb, args);
@@ -239,9 +239,9 @@ public class Bailiff
    * @throws java.rmi.RemoteException
    */
   public boolean tagPlayer(UUID id) throws java.rmi.RemoteException {
-    if (playerMap.containsKey(id)) {
+    if (this.playerMap.containsKey(id)) {
       // get the player
-      PlayerInterface p = playerMap.get(id);
+      PlayerInterface p = this.playerMap.get(id);
       // tag the player
       return p.tag();
     }
@@ -255,7 +255,7 @@ public class Bailiff
    * @throws java.rmi.RemoteException
    */
   public Map<UUID, PlayerInterface> getPlayers() throws java.rmi.RemoteException {
-    return playerMap;
+    return this.playerMap;
   }
 
   /**
@@ -266,7 +266,7 @@ public class Bailiff
    */
   public Map<UUID, String> getPlayersNames() throws java.rmi.RemoteException {
     Map<UUID, String> names = new HashMap<>();
-    for (Map.Entry<UUID, PlayerInterface> entry : playerMap.entrySet()) {
+    for (Map.Entry<UUID, PlayerInterface> entry : this.playerMap.entrySet()) {
       names.put(entry.getKey(), entry.getValue().getName());
     }
     return names;
@@ -279,7 +279,7 @@ public class Bailiff
    * @throws java.rmi.RemoteException
    */
   public int getNumberOfPlayers() throws java.rmi.RemoteException {
-    return playerMap.size();
+    return this.playerMap.size();
   }
 
   /**
@@ -290,7 +290,7 @@ public class Bailiff
    */
   public Map<UUID, Boolean> getTaggedPlayers() throws java.rmi.RemoteException {
     Map<UUID, Boolean> tagged = new HashMap<>();
-    for (Map.Entry<UUID, PlayerInterface> entry : playerMap.entrySet()) {
+    for (Map.Entry<UUID, PlayerInterface> entry : this.playerMap.entrySet()) {
       tagged.put(entry.getKey(), entry.getValue().isTagged());
     }
     return tagged;
