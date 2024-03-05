@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 /**
@@ -26,7 +27,7 @@ public class Player extends Dexter implements PlayerInterface {
   private UUID uuid;
 
   // The good Bailiffs
-  private Map<String, List<Object>> goodNames;
+  private Map<String, BailiffInterface> goodNames;
 
   // isTagged flag
   private boolean isIt;
@@ -34,8 +35,15 @@ public class Player extends Dexter implements PlayerInterface {
   // Migration flag
   private boolean migrating;
 
+  // Current Bailiff
+  private BailiffInterface currentBailiff;
+
+  // =============== Tag Setter
+  public void setTag() {
+    this.isIt = true;
+  }
+
   // =============== Interfaces implementation
-  // ==========================================================
 
   // Implementing getUUID method
   public UUID getUUID() throws java.rmi.RemoteException {
@@ -58,35 +66,29 @@ public class Player extends Dexter implements PlayerInterface {
     return this.isIt;
   }
 
+  // Implementing isMigrating method
+  public boolean isMigrating() throws java.rmi.RemoteException {
+    return this.migrating;
+  }
+
   // ================== Constructor
-  // ==========================================================
   public Player() {
     super();
     this.uuid = UUID.randomUUID();
     this.goodNames = new HashMap<>();
     this.isIt = false;
     this.migrating = false;
+    this.currentBailiff = null;
   }
 
   // ================== Helpers Methods
-  // ==========================================================
 
   /**
-   * This method tags the player and returns true i f the player was successfully
-   * tagged and false when not.
-   */
-  public boolean getTagged() {
-    this.isIt = true;
-    if (this.isIt && this.migrating == false)
-      return true;
-    else
-      return false;
-  }
-
-  /**
-   * Scan for Baliff services and prepare the contents of the Hashmap goodnames.
+   * Scan for Baliff services.
    */
   protected void scanForBailiffs() {
+
+    boolean badName = false;
 
     try {
 
@@ -106,103 +108,73 @@ public class Player extends Dexter implements PlayerInterface {
 
           // If the name already is on the bad list, ignore it
 
-          if (badNames.contains(name))
-            continue;
-
-          // If the name already is on the good list, ignore it
-
-          if (goodNames.get(name) != null)
+          if (this.goodNames.containsKey(name))
             continue;
 
           // Else, optimistically add it to the good names
 
-          // goodNames.add(name);
-          ////////////////////////////
-          boolean noRegistry = false;
-          boolean badName = false;
+          // Lookup the service name we selected
+
           try {
+            Remote service = registry.lookup(name);
 
-            // Obtain the default RMI registry
+            // Verify it is what we want
 
-            registry = LocateRegistry.getRegistry(null);
+            if (service instanceof BailiffInterface) {
 
-            try {
+              BailiffInterface bfi = (BailiffInterface) service;
 
-              // Lookup the service name we selected
-
-              Remote service = registry.lookup(name);
-
-              // Verify it is what we want
-
-              if (service instanceof BailiffInterface) {
-
-                BailiffInterface bfi = (BailiffInterface) service;
-                int playerCount = bfi.getPlayers().size();
-                // add it to the good names
-                List<Object> tuple = new ArrayList<>();
-                tuple.add(bfi);
-                tuple.add(playerCount);
-
-                // here we create this strcture: {key: name, value: [interface, # of players]}
-                goodNames.put(name, tuple);
-
-              } else {
-                badName = true;
-              }
-            } catch (Exception e) {
-              badName = true;
+              // Add the name to the good list
+              this.goodNames.put(name, bfi);
             }
           } catch (Exception e) {
-            noRegistry = true;
-          }
-
-          // If we come here the migrate failed. Check the state flags
-          // and take appropriate action.
-
-          if (noRegistry) {
-            debugMsg("No registry found - resetting name lists");
-            goodNames.clear();
-            badNames.clear();
-          } else if (badName) {
+            badName = true;
             debugMsg(String.format("Bad service name found: %s", name));
-            // the name is never added, so no reason to remove it
-            // goodNames.remove(name);
             badNames.add(name);
-          }
-
-          /////////////////
-
+          }       
         }
-
       }
-
     } catch (Exception e) {
       debugMsg("Scanning for Bailiffs failed: " + e.toString());
     }
-  }
+  } 
 
-  /**
-   * This is Dexter's main program once he is on his way. In short, he
-   * goes into an infinite loop in which the only exit is a
-   * successfull migrate to a Bailiff.
-   *
-   * for (;;) {
-   *
-   * while no good Bailiffs are found
-   * look for Bailiffs
-   *
-   * while good Bailiffs are known
-   * jump to a random Bailiff
-   * or
-   * update the lists of good and bad bailiffs
-   * }
-   *
-   * Dexter has no concept of where he is, and may happily migrate to
-   * the Bailiff he is already in.
-   */
+  // ================== Behavior Methods
+
   public void topLevel()
       throws java.io.IOException {
     jumpCount++;
+    // Reset migrating flag
+    this.migrating = false;
+
+    // Debug tag flag
+    // debugMsg("Is it: " + this.isIt);
+    // Debug current Bailiff
+    // debugMsg("Current Bailiff: " + this.currentBailiff);
+
+    // Tag behavior
+    if (this.currentBailiff != null) {
+      try {
+        if (this.isIt) {
+          debugMsg(id + " is it!");
+          // Get the players from the current Bailiff
+          Map<UUID, PlayerInterface> players = this.currentBailiff.getPlayers();
+          // Get the first player eligible to be tagged!
+          for (UUID uuid : players.keySet()) {
+            // If the player is not tagged and not migrating
+            if (!players.get(uuid).isTagged() && !players.get(uuid).isMigrating()) {
+              // Tag the player
+              this.currentBailiff.tagPlayer(uuid);
+              debugMsg(id + " tagged " + players.get(uuid).getName());
+              this.isIt = false;
+              break;
+            }
+          }
+        }
+      } catch (RemoteException e) {
+        debugMsg("Failed to tag: " + e.toString());
+      }
+    }
 
     // Loop forever until we have successfully jumped to a Bailiff.
 
@@ -247,55 +219,69 @@ public class Player extends Dexter implements PlayerInterface {
 
       while (!goodNames.isEmpty()) {
 
-        // Randomly pick one of the good names
+        // Service to migrate
+        BailiffInterface service = null;
 
-        String name = getBailiffWithMaxPlayers();
+        // If the player is not tagged, we will select a Bailiff with less players
+        if (!this.isIt) {
+          // Get the number of players from each Bailiff
+          Map<String, BailiffInterface> tempGoodNames = new HashMap<>(this.goodNames);
+          for (String name : this.goodNames.keySet()) {
+            try {
+              if (this.goodNames.get(name).getNumberOfPlayers() > 0) {
+                tempGoodNames.remove(name);
+              }
+            } catch (RemoteException e) {
+              debugMsg("Failed to get number of players: " + e.toString());
+            }
+          }
+          // If there are no Bailiffs with less players, we will select a random one
+          if (tempGoodNames.isEmpty()) {
+            List<String> keys = new ArrayList<>(this.goodNames.keySet());
+            Random rand = new Random();
+            String randomKey = keys.get(rand.nextInt(keys.size()));
+            service = this.goodNames.get(randomKey);
+          } else {
+            List<String> keys = new ArrayList<>(tempGoodNames.keySet());
+            Random rand = new Random();
+            String randomKey = keys.get(rand.nextInt(keys.size()));
+            service = tempGoodNames.get(randomKey);
+          }
+        } else {
+          // If the player is tagged, we will select a random Bailiff
+          List<String> keys = new ArrayList<>(this.goodNames.keySet());
+          Random rand = new Random();
+          String randomKey = keys.get(rand.nextInt(keys.size()));
+          service = this.goodNames.get(randomKey);
+        }
 
-        ////////////////////////////
         // Prepare some state flags
+
         boolean noRegistry = false;
         boolean badName = false;
-        // maybe we could remove some parts here since we do them in the scanForBailiffs
-        // method
+
+        // Attempt to migrate
+
         try {
+          debugMsg("Trying to migrate");
 
-          // Obtain the default RMI registry
-
-          Registry registry = LocateRegistry.getRegistry(null);
-
-          try {
-
-            // Lookup the service name we selected
-
-            Remote service = registry.lookup(name);
-
-            // Verify it is what we want
-
-            if (service instanceof BailiffInterface) {
-
-              BailiffInterface bfi = (BailiffInterface) service;
-
-              // Attempt to migrate
-
-              try {
-                debugMsg("Trying to migrate");
-
-                bfi.migrate(this, "topLevel", new Object[] {});
-
-                debugMsg("Has migrated");
-
-                return; // SUCCESS, we are done here
-              } catch (RemoteException rex) {
-                debugMsg(rex.toString());
-                badName = true;
-              }
-            } else
-              badName = true;
-          } catch (Exception e) {
-            badName = true;
+          if (service != null) {
+            // Set migrating flag
+            this.migrating = true;
+            this.currentBailiff = service;
+            service.migrate(this, "topLevel", new Object[] {});
+            debugMsg("Has migrated");
+            return; // SUCCESS, we are done here
+          } else {
+            debugMsg("Service is null, migration failed");
+            throw new RemoteException("Service is null");
           }
-        } catch (Exception e) {
-          noRegistry = true;
+        } catch (RemoteException rex) {
+          debugMsg(rex.toString());
+          badName = true;
+        } catch (NoSuchMethodException e) {
+          debugMsg(e.toString());
+          badName = true;
         }
 
         // If we come here the migrate failed. Check the state flags
@@ -306,28 +292,91 @@ public class Player extends Dexter implements PlayerInterface {
           goodNames.clear();
           badNames.clear();
         } else if (badName) {
-          debugMsg(String.format("Bad service name found: %s", name));
-          goodNames.remove(name);
-          badNames.add(name);
+          debugMsg(String.format("Bad service name found: %s", this.currentBailiff.toString()));
+          goodNames.remove(this.currentBailiff.toString());
+          badNames.add(this.currentBailiff.toString());
         }
-        ////////////////////////////
+
       } // while candidates remain
 
       debugMsg("All Bailiffs failed.");
     } // for ever
   } // topLevel
 
-  public String getBailiffWithMaxPlayers() {
-    int max = 0;
-    String bailiffName = null;
-    for (String name : goodNames.keySet()) {
-      List<Object> tuple = goodNames.get(name);
-      if ((int) tuple.get(1) > max) {
-        max = (int) tuple.get(1);
-        bailiffName = name;
-      }
-    }
-    return bailiffName;
+  // ================== Main Method
+
+  /**
+   * Prints commandline help.
+   */
+  protected static void showUsage() {
+    String[] msg = {
+        "Usage: {?,-h,-help}|[-debug][-id string][-rs ms][-qs ms]",
+        "? -h -help   Show this text",
+        "-debug       Enable trace and diagnostic messages",
+        "-id  string  Set the id string printed by debug messages",
+        "-rs  ms      Set the restraint sleep in milliseconds",
+        "-qs  ms      Set the lookup query retry delay",
+        "-tag         Tag the player",
+    };
+    for (String s : msg)
+      System.out.println(s);
   }
+
+  public static void main(String[] argv)
+      throws java.io.IOException, java.lang.ClassNotFoundException {
+
+    // Make a new Dexter and configure it from commandline arguments.
+
+    Player dx = new Player();
+
+    // Parse and act on the commandline arguments.
+
+    int state = 0;
+
+    for (String av : argv) {
+
+      switch (state) {
+
+        case 0:
+          if (av.equals("?") || av.equals("-h") || av.equals("-help")) {
+            showUsage();
+            return;
+          } else if (av.equals("-debug"))
+            dx.setDebug(true);
+          else if (av.equals("-id"))
+            state = 1;
+          else if (av.equals("-rs"))
+            state = 2;
+          else if (av.equals("-qs"))
+            state = 3;
+          else if (av.equals("-tag")) 
+            dx.setTag();
+          else {
+            System.err.println("Unknown commandline argument: " + av);
+            return;
+          }
+          break;
+
+        case 1:
+          dx.setId(av);
+          state = 0;
+          break;
+
+        case 2:
+          dx.setRestraintSleep(Long.parseLong(av));
+          state = 0;
+          break;
+
+        case 3:
+          dx.setRetrySleep(Long.parseLong(av));
+          state = 0;
+          break;
+
+      } // switch
+    } // for all commandline arguments
+
+    dx.topLevel(); // Start the Player
+
+  } // main
 
 }

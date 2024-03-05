@@ -18,4 +18,8 @@ public interface PlayerInterface extends
     // Is Player Tagged
     public boolean isTagged()
         throws java.rmi.RemoteException;
+
+    // Is Player Migrating
+    public boolean isMigrating()
+        throws java.rmi.RemoteException;
 }
